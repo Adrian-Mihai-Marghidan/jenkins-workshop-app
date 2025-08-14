@@ -37,8 +37,10 @@ pipeline {
             }
             steps {
                 echo 'Running tests inside a Docker container...'
-                // These shell commands are executed inside the node:18-alpine container
                 sh '''
+                    echo "Installing build dependencies..."
+                    apk add --no-cache python3 make g++
+
                     echo "Ensuring a clean environment by removing old dependencies..."
                     rm -rf node_modules
                     npm install
