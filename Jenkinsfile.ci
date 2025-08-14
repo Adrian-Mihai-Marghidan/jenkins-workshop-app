@@ -1,10 +1,49 @@
 pipeline {
-    agent any
+    // Define a global agent 'none' to enforce per-stage agent definitions
+    agent none
+
+    options {
+        // Set a global timeout for the entire pipeline to prevent it from running indefinitely.
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
     stages {
         stage('Checkout') {
+            // This stage can run on any available agent
+            agent any
+            options {
+                // Set a timeout for this stage to prevent it from hanging.
+                timeout(time: 5, unit: 'MINUTES')
+            }
             steps {
                 echo "Checking out code..."
                 checkout scm
+            }
+        }
+
+        stage('Run Tests') {
+            // Define a specific agent for this stage
+            agent {
+                // Use the Docker Pipeline plugin to spin up a temporary container
+                docker {
+                    image 'node:18-alpine'
+                    // Set the HOME env var to the workspace to fix npm permissions
+                    args '-e HOME=${WORKSPACE}'
+                }
+            }
+            options {
+                // Set a timeout for this stage to prevent it from hanging.
+                timeout(time: 10, unit: 'MINUTES')
+            }
+            steps {
+                echo 'Running tests inside a Docker container...'
+                // These shell commands are executed inside the node:18-alpine container
+                sh '''
+                    echo "Ensuring a clean environment by removing old dependencies..."
+                    rm -rf node_modules
+                    npm install
+                    npm test
+                '''
             }
         }
     }
